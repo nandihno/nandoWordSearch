@@ -8,6 +8,8 @@ struct GameState: Equatable, Sendable {
     var phase: GamePhase
     var provider: WordGenerationProvider?
     var startedAt: Date?
+    var pausedAt: Date?
+    var accumulatedPausedDuration: TimeInterval
     var completedAt: Date?
 
     init(
@@ -18,6 +20,8 @@ struct GameState: Equatable, Sendable {
         phase: GamePhase = .themeSelection,
         provider: WordGenerationProvider? = nil,
         startedAt: Date? = nil,
+        pausedAt: Date? = nil,
+        accumulatedPausedDuration: TimeInterval = 0,
         completedAt: Date? = nil
     ) {
         self.theme = theme.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -27,6 +31,8 @@ struct GameState: Equatable, Sendable {
         self.phase = phase
         self.provider = provider
         self.startedAt = startedAt
+        self.pausedAt = pausedAt
+        self.accumulatedPausedDuration = accumulatedPausedDuration
         self.completedAt = completedAt
     }
 

@@ -206,6 +206,8 @@ struct GridCoordinate: Hashable, Codable, Sendable {
     let column: Int
 }
 
+typealias GridPosition = GridCoordinate
+
 enum GridDirection: String, CaseIterable, Codable, Sendable {
     case north
     case northEast
