@@ -17,15 +17,20 @@ final class GameViewModel: ObservableObject {
     private var selectionDirection: GridDirection?
     private let onWordFound: () -> Void
     private let settingsStore: SettingsStore
+    private let statsStore: StatsStore
     private let availabilityProvider: @MainActor () -> SystemLanguageModel.Availability
     private let appleServiceFactory: @MainActor () -> any WordGenerationService
     private let claudeServiceFactory: @MainActor () -> any WordGenerationService
+    private var lastWordFoundAt: Date?
+    private(set) var wordTimes: [WordTime] = []
+    private(set) var lastGameStats: GameStats?
 
     convenience init(onWordFound: @escaping () -> Void = {}) {
         self.init(
             gameState: GameState(),
             onWordFound: onWordFound,
             settingsStore: SettingsStore(),
+            statsStore: StatsStore(),
             availabilityProvider: {
                 SystemLanguageModel.default.availability
             },
@@ -46,6 +51,7 @@ final class GameViewModel: ObservableObject {
             gameState: gameState,
             onWordFound: onWordFound,
             settingsStore: SettingsStore(),
+            statsStore: StatsStore(),
             availabilityProvider: {
                 SystemLanguageModel.default.availability
             },
@@ -62,6 +68,7 @@ final class GameViewModel: ObservableObject {
         gameState: GameState,
         onWordFound: @escaping () -> Void = {},
         settingsStore: SettingsStore,
+        statsStore: StatsStore = StatsStore(),
         availabilityProvider: @escaping @MainActor () -> SystemLanguageModel.Availability = {
             SystemLanguageModel.default.availability
         },
@@ -75,6 +82,7 @@ final class GameViewModel: ObservableObject {
         self.gameState = gameState
         self.onWordFound = onWordFound
         self.settingsStore = settingsStore
+        self.statsStore = statsStore
         self.availabilityProvider = availabilityProvider
         self.appleServiceFactory = appleServiceFactory
         self.claudeServiceFactory = claudeServiceFactory
@@ -258,7 +266,6 @@ final class GameViewModel: ObservableObject {
 
     func updateSelection(to position: GridPosition) {
         guard gameState.grid.contains(position) else {
-            clearSelection()
             return
         }
 
@@ -274,20 +281,20 @@ final class GameViewModel: ObservableObject {
             return
         }
 
+        let snapped = snapToLine(from: selectionStart, to: position)
+
         guard
-            let candidateDirection = direction(from: selectionStart, to: position),
+            let candidateDirection = direction(from: selectionStart, to: snapped),
             let candidatePath = path(
                 from: selectionStart,
-                to: position,
+                to: snapped,
                 direction: candidateDirection
             )
         else {
-            restartSelection(at: position)
             return
         }
 
         if let selectionDirection, selectionDirection != candidateDirection {
-            restartSelection(at: position)
             return
         }
 
@@ -336,10 +343,23 @@ final class GameViewModel: ObservableObject {
             )
         )
 
+        let now = Date()
+        let referenceTime = lastWordFoundAt ?? gameState.startedAt ?? now
+        let wordDuration = now.timeIntervalSince(referenceTime)
+        lastWordFoundAt = now
+        wordTimes.append(
+            WordTime(
+                word: matchedWord.value,
+                duration: wordDuration,
+                orderFound: wordTimes.count + 1
+            )
+        )
+
         allWordsFound = !gameState.words.isEmpty && gameState.words.allSatisfy(\.isFound)
         if allWordsFound {
             gameState.phase = .completed
-            gameState.completedAt = Date()
+            gameState.completedAt = now
+            saveGameStats()
         }
 
         onWordFound()
@@ -414,6 +434,7 @@ final class GameViewModel: ObservableObject {
             words: words,
             phase: .playing,
             provider: provider,
+            background: .random,
             startedAt: Date(),
             pausedAt: nil,
             accumulatedPausedDuration: 0
@@ -434,12 +455,32 @@ final class GameViewModel: ObservableObject {
         return nil
     }
 
+    private func saveGameStats() {
+        let stats = GameStats(
+            theme: gameState.theme,
+            totalTime: elapsedTime,
+            wordCount: gameState.words.count,
+            wordTimes: wordTimes,
+            completedAt: gameState.completedAt ?? Date()
+        )
+        statsStore.save(stats)
+        lastGameStats = stats
+    }
+
+    var isPersonalBest: Bool {
+        guard let stats = lastGameStats else { return false }
+        return statsStore.isPersonalBestTime(stats.totalTime)
+    }
+
     private func resetInteractionState() {
         selectionStart = nil
         selectionDirection = nil
         selectedCells = []
         foundWords = []
         allWordsFound = false
+        lastWordFoundAt = nil
+        wordTimes = []
+        lastGameStats = nil
         syncSelectionState(isActive: false)
     }
 
@@ -466,6 +507,68 @@ final class GameViewModel: ObservableObject {
         gameState.selection = GridSelection(
             coordinates: selectedCells,
             isActive: isActive && !selectedCells.isEmpty
+        )
+    }
+
+    private func snapToLine(
+        from start: GridPosition,
+        to end: GridPosition
+    ) -> GridPosition {
+        let dr = end.row - start.row
+        let dc = end.column - start.column
+
+        guard dr != 0 || dc != 0 else {
+            return end
+        }
+
+        let absDr = abs(dr)
+        let absDc = abs(dc)
+
+        if selectionDirection != nil {
+            let dist = max(absDr, absDc)
+            return GridPosition(
+                row: start.row + selectionDirection!.rowStep * dist,
+                column: start.column + selectionDirection!.columnStep * dist
+            )
+        }
+
+        let angle = atan2(Double(dr), Double(dc))
+        let sector = (angle / (.pi / 4)).rounded()
+
+        let snappedRow: Int
+        let snappedColumn: Int
+
+        switch Int(sector) {
+        case 0:
+            snappedRow = start.row
+            snappedColumn = start.column + absDc
+        case 1:
+            let dist = max(absDr, absDc)
+            snappedRow = start.row + dist
+            snappedColumn = start.column + dist
+        case 2, -2:
+            snappedRow = start.row + (dr > 0 ? absDr : -absDr)
+            snappedColumn = start.column
+        case 3, -3:
+            let dist = max(absDr, absDc)
+            snappedRow = start.row + (dr > 0 ? dist : -dist)
+            snappedColumn = start.column - dist
+        case 4, -4:
+            snappedRow = start.row
+            snappedColumn = start.column - absDc
+        case -1:
+            let dist = max(absDr, absDc)
+            snappedRow = start.row - dist
+            snappedColumn = start.column + dist
+        default:
+            snappedRow = end.row
+            snappedColumn = end.column
+        }
+
+        let gridSize = gameState.grid.size
+        return GridPosition(
+            row: max(0, min(gridSize - 1, snappedRow)),
+            column: max(0, min(gridSize - 1, snappedColumn))
         )
     }
 

@@ -6,6 +6,10 @@ struct GameView: View {
 
     @ObservedObject var viewModel: GameViewModel
 
+    private var bg: GameBackground {
+        viewModel.gameState.background
+    }
+
     var body: some View {
         GeometryReader { proxy in
             let isWideLayout = horizontalSizeClass == .regular && proxy.size.width > proxy.size.height
@@ -45,6 +49,8 @@ struct GameView: View {
                     WinOverlayView(
                         timeText: formattedElapsedTime,
                         isGenerating: viewModel.isGenerating,
+                        isPersonalBest: viewModel.isPersonalBest,
+                        wordTimes: viewModel.wordTimes,
                         onPlayAgain: playAgain,
                         onNewTheme: returnToThemeSelection
                     )
@@ -71,7 +77,15 @@ struct GameView: View {
         } message: {
             Text(viewModel.generationError?.localizedDescription ?? "Something went wrong.")
         }
-        .background(Color(uiColor: .systemGroupedBackground).ignoresSafeArea())
+        .background(
+            LinearGradient(
+                colors: bg.gradientColors,
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+        )
+        .preferredColorScheme(.dark)
         .navigationBarBackButtonHidden()
         .navigationBarTitleDisplayMode(.inline)
         .onChange(of: scenePhase, initial: true) { _, newPhase in
@@ -84,27 +98,43 @@ struct GameView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text(viewModel.gameState.theme)
                     .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
                     .lineLimit(1)
 
                 if let provider = viewModel.activeProvider {
                     Label(provider.displayName, systemImage: provider.symbolName)
                         .font(.footnote.weight(.medium))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.white.opacity(0.6))
                 }
 
                 TimelineView(.periodic(from: .now, by: 1)) { _ in
                     Label(formattedElapsedTime, systemImage: "timer")
-                        .font(.subheadline.monospacedDigit())
-                        .foregroundStyle(.secondary)
+                        .font(.subheadline.monospacedDigit().weight(.medium))
+                        .foregroundStyle(.white.opacity(0.7))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(
+                            Capsule()
+                                .fill(.white.opacity(0.12))
+                        )
                 }
             }
 
             Spacer(minLength: 0)
 
-            Button("New Game", systemImage: "plus.circle", action: returnToThemeSelection)
-                .buttonStyle(.bordered)
-                .frame(minWidth: 44, minHeight: 44)
-                .controlSize(.regular)
+            Button(action: returnToThemeSelection) {
+                Label("New Game", systemImage: "plus.circle")
+                    .font(.subheadline.weight(.semibold))
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.white)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(
+                Capsule()
+                    .fill(.white.opacity(0.15))
+            )
+            .frame(minWidth: 44, minHeight: 44)
         }
     }
 
@@ -113,10 +143,11 @@ struct GameView: View {
             HStack {
                 Label("Words", systemImage: "text.badge.checkmark")
                     .font(.headline)
+                    .foregroundStyle(.white)
                 Spacer()
                 Text("\(viewModel.gameState.foundWords.count)/\(viewModel.gameState.words.count)")
-                    .font(.subheadline.monospacedDigit())
-                    .foregroundStyle(.secondary)
+                    .font(.subheadline.monospacedDigit().weight(.medium))
+                    .foregroundStyle(.white.opacity(0.6))
             }
 
             WordListView(words: viewModel.gameState.words)
@@ -126,7 +157,11 @@ struct GameView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Color(uiColor: .secondarySystemBackground))
+                .fill(bg.cardBackgroundColor)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .strokeBorder(.white.opacity(0.06), lineWidth: 1)
         )
     }
 

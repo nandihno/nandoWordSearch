@@ -1,10 +1,12 @@
 import SwiftUI
 
 struct GridView: View {
-    private let cellSpacing: CGFloat = 6
+    private let cellSpacing: CGFloat = 3
 
     @ObservedObject var viewModel: GameViewModel
     @State private var lastDraggedPosition: GridPosition?
+    @State private var dragStartPoint: CGPoint?
+    @State private var lockedDirection: CGPoint?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -69,8 +71,48 @@ struct GridView: View {
         return (cellSize, gridDimension)
     }
 
+    // MARK: - Drag handling
+
     private func handleDragChanged(_ location: CGPoint, layout: (cellSize: CGFloat, gridDimension: CGFloat)) {
-        guard let position = position(for: location, layout: layout) else {
+        let step = layout.cellSize + cellSpacing
+
+        if dragStartPoint == nil {
+            dragStartPoint = location
+            lockedDirection = nil
+            if let pos = cellPosition(for: location, step: step) {
+                lastDraggedPosition = pos
+                withAnimation(reduceMotion ? .linear(duration: 0.01) : .snappy(duration: 0.14)) {
+                    viewModel.beginSelection(at: pos)
+                }
+            }
+            return
+        }
+
+        guard let startPt = dragStartPoint else { return }
+
+        let dx = location.x - startPt.x
+        let dy = location.y - startPt.y
+        let pixelDistance = sqrt(dx * dx + dy * dy)
+
+        let lockThreshold = step * 0.8
+        if lockedDirection == nil && pixelDistance >= lockThreshold {
+            let angle = atan2(dy, dx)
+            let snapped = (angle / (.pi / 4)).rounded() * (.pi / 4)
+            lockedDirection = CGPoint(x: cos(snapped), y: sin(snapped))
+        }
+
+        let projectedPoint: CGPoint
+        if let dir = lockedDirection {
+            let projLength = dx * dir.x + dy * dir.y
+            projectedPoint = CGPoint(
+                x: startPt.x + dir.x * max(0, projLength),
+                y: startPt.y + dir.y * max(0, projLength)
+            )
+        } else {
+            projectedPoint = location
+        }
+
+        guard let position = cellPosition(for: projectedPoint, step: step) else {
             return
         }
 
@@ -86,38 +128,28 @@ struct GridView: View {
 
     private func handleDragEnded() {
         lastDraggedPosition = nil
+        dragStartPoint = nil
+        lockedDirection = nil
         withAnimation(reduceMotion ? .linear(duration: 0.01) : .snappy(duration: 0.2)) {
             viewModel.commitSelection()
         }
     }
 
-    private func position(
-        for location: CGPoint,
-        layout: (cellSize: CGFloat, gridDimension: CGFloat)
-    ) -> GridPosition? {
+    private func cellPosition(for location: CGPoint, step: CGFloat) -> GridPosition? {
+        let gridSize = viewModel.gameState.grid.size
+        let gridDimension = step * CGFloat(gridSize) - cellSpacing
+
         guard
-            location.x >= 0,
-            location.y >= 0,
-            location.x <= layout.gridDimension,
-            location.y <= layout.gridDimension
+            location.x >= -step * 0.3,
+            location.y >= -step * 0.3,
+            location.x <= gridDimension + step * 0.3,
+            location.y <= gridDimension + step * 0.3
         else {
             return nil
         }
 
-        let step = layout.cellSize + cellSpacing
-        let row = Int(location.y / step)
-        let column = Int(location.x / step)
-        let insetY = location.y - (CGFloat(row) * step)
-        let insetX = location.x - (CGFloat(column) * step)
-
-        guard
-            row < viewModel.gameState.grid.size,
-            column < viewModel.gameState.grid.size,
-            insetY <= layout.cellSize,
-            insetX <= layout.cellSize
-        else {
-            return nil
-        }
+        let row = max(0, min(gridSize - 1, Int((location.y + step * 0.3) / step)))
+        let column = max(0, min(gridSize - 1, Int((location.x + step * 0.3) / step)))
 
         return GridPosition(row: row, column: column)
     }
@@ -146,18 +178,18 @@ struct GridView: View {
 
         if viewModel.selectedCells.contains(coordinate) {
             return (
-                backgroundColor: .accentColor,
-                foregroundColor: .white,
-                borderColor: .accentColor.opacity(0.15),
+                backgroundColor: .white.opacity(0.85),
+                foregroundColor: .black,
+                borderColor: .white.opacity(0.3),
                 borderWidth: 0,
                 scale: 1.07
             )
         }
 
         return (
-            backgroundColor: Color(uiColor: .systemBackground),
-            foregroundColor: .primary,
-            borderColor: Color(uiColor: .separator).opacity(0.35),
+            backgroundColor: .white.opacity(0.12),
+            foregroundColor: .white,
+            borderColor: .white.opacity(0.08),
             borderWidth: 1,
             scale: 1
         )

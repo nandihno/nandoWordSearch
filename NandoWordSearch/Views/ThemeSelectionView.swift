@@ -17,6 +17,7 @@ struct ThemeSelectionView: View {
     @StateObject private var viewModel: GameViewModel
     @State private var themeText = ""
     @State private var isShowingSettings = false
+    @State private var isShowingStats = false
 
     init(viewModel: GameViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -143,6 +144,10 @@ struct ThemeSelectionView: View {
             }
             .background(Color(uiColor: .systemGroupedBackground).ignoresSafeArea())
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Stats", systemImage: "trophy", action: openStats)
+                        .frame(minWidth: 44, minHeight: 44)
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Settings", systemImage: "gearshape", action: openSettings)
                         .frame(minWidth: 44, minHeight: 44)
@@ -153,6 +158,9 @@ struct ThemeSelectionView: View {
             }
             .sheet(isPresented: $isShowingSettings) {
                 SettingsView()
+            }
+            .sheet(isPresented: $isShowingStats) {
+                StatsView()
             }
             .alert(
                 "Puzzle Generation Failed",
@@ -199,6 +207,10 @@ struct ThemeSelectionView: View {
 
     private func openSettings() {
         isShowingSettings = true
+    }
+
+    private func openStats() {
+        isShowingStats = true
     }
 
     private func providerBadge(

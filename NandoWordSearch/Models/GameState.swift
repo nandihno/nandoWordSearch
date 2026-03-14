@@ -7,6 +7,7 @@ struct GameState: Equatable, Sendable {
     var selection: GridSelection
     var phase: GamePhase
     var provider: WordGenerationProvider?
+    var background: GameBackground
     var startedAt: Date?
     var pausedAt: Date?
     var accumulatedPausedDuration: TimeInterval
@@ -19,6 +20,7 @@ struct GameState: Equatable, Sendable {
         selection: GridSelection = .idle,
         phase: GamePhase = .themeSelection,
         provider: WordGenerationProvider? = nil,
+        background: GameBackground = .ocean,
         startedAt: Date? = nil,
         pausedAt: Date? = nil,
         accumulatedPausedDuration: TimeInterval = 0,
@@ -30,6 +32,7 @@ struct GameState: Equatable, Sendable {
         self.selection = selection
         self.phase = phase
         self.provider = provider
+        self.background = background
         self.startedAt = startedAt
         self.pausedAt = pausedAt
         self.accumulatedPausedDuration = accumulatedPausedDuration
