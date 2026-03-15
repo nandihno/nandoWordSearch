@@ -145,7 +145,7 @@ struct Grid: Equatable, Sendable {
         }
 
         let shuffledCoordinates = coordinates.shuffled(using: &generator)
-        let shuffledDirections = GridDirection.allCases.shuffled(using: &generator)
+        let shuffledDirections = [GridDirection.north, .south, .east, .west].shuffled(using: &generator)
 
         for _ in 0 ..< 100 {
             guard

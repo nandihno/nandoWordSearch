@@ -5,8 +5,6 @@ struct GridView: View {
 
     @ObservedObject var viewModel: GameViewModel
     @State private var lastDraggedPosition: GridPosition?
-    @State private var dragStartPoint: CGPoint?
-    @State private var lockedDirection: CGPoint?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -76,43 +74,16 @@ struct GridView: View {
     private func handleDragChanged(_ location: CGPoint, layout: (cellSize: CGFloat, gridDimension: CGFloat)) {
         let step = layout.cellSize + cellSpacing
 
-        if dragStartPoint == nil {
-            dragStartPoint = location
-            lockedDirection = nil
-            if let pos = cellPosition(for: location, step: step) {
-                lastDraggedPosition = pos
-                withAnimation(reduceMotion ? .linear(duration: 0.01) : .snappy(duration: 0.14)) {
-                    viewModel.beginSelection(at: pos)
-                }
-            }
+        guard let position = cellPosition(for: location, step: step) else {
             return
         }
 
-        guard let startPt = dragStartPoint else { return }
-
-        let dx = location.x - startPt.x
-        let dy = location.y - startPt.y
-        let pixelDistance = sqrt(dx * dx + dy * dy)
-
-        let lockThreshold = step * 0.8
-        if lockedDirection == nil && pixelDistance >= lockThreshold {
-            let angle = atan2(dy, dx)
-            let snapped = (angle / (.pi / 4)).rounded() * (.pi / 4)
-            lockedDirection = CGPoint(x: cos(snapped), y: sin(snapped))
-        }
-
-        let projectedPoint: CGPoint
-        if let dir = lockedDirection {
-            let projLength = dx * dir.x + dy * dir.y
-            projectedPoint = CGPoint(
-                x: startPt.x + dir.x * max(0, projLength),
-                y: startPt.y + dir.y * max(0, projLength)
-            )
-        } else {
-            projectedPoint = location
-        }
-
-        guard let position = cellPosition(for: projectedPoint, step: step) else {
+        if lastDraggedPosition == nil {
+            lastDraggedPosition = position
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            withAnimation(reduceMotion ? .linear(duration: 0.01) : .snappy(duration: 0.14)) {
+                viewModel.beginSelection(at: position)
+            }
             return
         }
 
@@ -128,8 +99,6 @@ struct GridView: View {
 
     private func handleDragEnded() {
         lastDraggedPosition = nil
-        dragStartPoint = nil
-        lockedDirection = nil
         withAnimation(reduceMotion ? .linear(duration: 0.01) : .snappy(duration: 0.2)) {
             viewModel.commitSelection()
         }
@@ -189,7 +158,7 @@ struct GridView: View {
         return (
             backgroundColor: .white.opacity(0.12),
             foregroundColor: .white,
-            borderColor: .white.opacity(0.08),
+            borderColor: .white.opacity(0.25),
             borderWidth: 1,
             scale: 1
         )

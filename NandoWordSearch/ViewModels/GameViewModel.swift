@@ -294,7 +294,13 @@ final class GameViewModel: ObservableObject {
             return
         }
 
-        if let selectionDirection, selectionDirection != candidateDirection {
+        let directionIsLocked = selectedCells.count >= 5
+
+        if let selectionDirection, selectionDirection != candidateDirection, directionIsLocked {
+            return
+        }
+
+        if directionIsLocked && candidatePath.count < selectedCells.count {
             return
         }
 
