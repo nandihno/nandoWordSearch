@@ -226,6 +226,12 @@ final class GameViewModel: ObservableObject {
         for theme: String,
         excluding previouslyUsedWords: [String]
     ) async throws -> (words: [String], provider: WordGenerationProvider) {
+        // Contacts theme bypasses AI word generation entirely
+        if theme == GameViewModel.contactsThemeName {
+            let words = try await ContactsWordService().fetchWords()
+            return (words, .contacts)
+        }
+
         let primaryService = makeWordGenerationService()
         let primaryProvider = primaryService.provider
 
@@ -251,6 +257,8 @@ final class GameViewModel: ObservableObject {
             return (words, fallbackProvider)
         }
     }
+
+    static let contactsThemeName = "Your Contacts"
 
     func beginSelection(at position: GridPosition) {
         guard gameState.grid.contains(position) else {

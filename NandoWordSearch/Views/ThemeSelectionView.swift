@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct ThemeSelectionView: View {
+    private let contactsTheme = GameViewModel.contactsThemeName
+
     private let suggestedThemes = [
         "Space",
         "Music",
@@ -54,6 +56,62 @@ struct ThemeSelectionView: View {
                         )
                     }
 
+                    // ── Your Contacts special card ──────────────────────
+                    Button(action: launchContactsPuzzle) {
+                        HStack(spacing: 14) {
+                            Image(systemName: "person.2.fill")
+                                .font(.title2)
+                                .foregroundStyle(.white)
+                                .frame(width: 44, height: 44)
+                                .background(
+                                    LinearGradient(
+                                        colors: [Color(red: 0.4, green: 0.2, blue: 0.9),
+                                                 Color(red: 0.7, green: 0.3, blue: 1.0)],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                )
+
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("Your Contacts")
+                                    .font(.headline)
+                                    .foregroundStyle(.primary)
+                                Text("Play with names from your contacts")
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            Spacer(minLength: 0)
+
+                            Image(systemName: "chevron.right")
+                                .font(.footnote.weight(.semibold))
+                                .foregroundStyle(.tertiary)
+                        }
+                        .padding(16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                .fill(Color(uiColor: .systemBackground))
+                                .shadow(color: Color(red: 0.55, green: 0.2, blue: 0.9).opacity(0.18),
+                                        radius: 12, y: 4)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                .stroke(
+                                    LinearGradient(
+                                        colors: [Color(red: 0.5, green: 0.25, blue: 0.95).opacity(0.5),
+                                                 Color(red: 0.7, green: 0.3, blue: 1.0).opacity(0.2)],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    lineWidth: 1.5
+                                )
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(viewModel.isGenerating)
+
+                    // ── Standard AI themes ───────────────────────────────
                     VStack(alignment: .leading, spacing: 16) {
                         Text("Theme")
                             .font(.headline)
@@ -180,6 +238,13 @@ struct ThemeSelectionView: View {
             } message: {
                 Text(viewModel.generationError?.localizedDescription ?? "Something went wrong.")
             }
+        }
+    }
+
+    private func launchContactsPuzzle() {
+        themeText = contactsTheme
+        Task {
+            await viewModel.generatePuzzle(theme: contactsTheme)
         }
     }
 

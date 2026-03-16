@@ -18,6 +18,7 @@ extension WordGenerationService {
 enum WordGenerationProvider: String, CaseIterable, Codable, Sendable {
     case appleIntelligence
     case claudeAPI
+    case contacts
 
     var displayName: String {
         switch self {
@@ -25,6 +26,8 @@ enum WordGenerationProvider: String, CaseIterable, Codable, Sendable {
             return "Apple Intelligence"
         case .claudeAPI:
             return "Claude Haiku 4.5"
+        case .contacts:
+            return "Your Contacts"
         }
     }
 
@@ -34,6 +37,8 @@ enum WordGenerationProvider: String, CaseIterable, Codable, Sendable {
             return "apple.intelligence"
         case .claudeAPI:
             return "bubble.left.and.bubble.right"
+        case .contacts:
+            return "person.2.fill"
         }
     }
 }
