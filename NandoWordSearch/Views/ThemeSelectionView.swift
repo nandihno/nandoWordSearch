@@ -56,66 +56,73 @@ struct ThemeSelectionView: View {
                         )
                     }
 
-                    // ── Your Contacts special card ──────────────────────
-                    Button(action: launchContactsPuzzle) {
-                        HStack(spacing: 14) {
-                            Image(systemName: "person.2.fill")
-                                .font(.title2)
-                                .foregroundStyle(.white)
-                                .frame(width: 44, height: 44)
-                                .background(
-                                    LinearGradient(
-                                        colors: [Color(red: 0.4, green: 0.2, blue: 0.9),
-                                                 Color(red: 0.7, green: 0.3, blue: 1.0)],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    ),
-                                    in: RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                )
-
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text("Your Contacts")
-                                    .font(.headline)
-                                    .foregroundStyle(.primary)
-                                Text("Play with names from your contacts")
-                                    .font(.footnote)
-                                    .foregroundStyle(.secondary)
-                            }
-
-                            Spacer(minLength: 0)
-
-                            Image(systemName: "chevron.right")
-                                .font(.footnote.weight(.semibold))
-                                .foregroundStyle(.tertiary)
-                        }
-                        .padding(16)
-                        .background(
-                            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                .fill(Color(uiColor: .systemBackground))
-                                .shadow(color: Color(red: 0.55, green: 0.2, blue: 0.9).opacity(0.18),
-                                        radius: 12, y: 4)
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                .stroke(
-                                    LinearGradient(
-                                        colors: [Color(red: 0.5, green: 0.25, blue: 0.95).opacity(0.5),
-                                                 Color(red: 0.7, green: 0.3, blue: 1.0).opacity(0.2)],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    ),
-                                    lineWidth: 1.5
-                                )
-                        )
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(viewModel.isGenerating)
-
-                    // ── Standard AI themes ───────────────────────────────
+                    // ── Theme section (contacts + AI topics) ────────────
                     VStack(alignment: .leading, spacing: 16) {
                         Text("Theme")
                             .font(.headline)
                             .foregroundStyle(.primary)
+
+                        // Your Contacts row inside the section
+                        Button(action: launchContactsPuzzle) {
+                            HStack(spacing: 12) {
+                                Image(systemName: "person.2.fill")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(.white)
+                                    .frame(width: 36, height: 36)
+                                    .background(
+                                        LinearGradient(
+                                            colors: [Color(red: 0.4, green: 0.2, blue: 0.9),
+                                                     Color(red: 0.7, green: 0.3, blue: 1.0)],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        ),
+                                        in: RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    )
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Your Contacts")
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(.primary)
+                                    Text("Play with names of people you know")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+
+                                Spacer(minLength: 0)
+
+                                Image(systemName: "chevron.right")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.tertiary)
+                            }
+                            .padding(12)
+                            .background(
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .fill(Color(red: 0.55, green: 0.2, blue: 0.9).opacity(0.08))
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .stroke(
+                                        LinearGradient(
+                                            colors: [Color(red: 0.5, green: 0.25, blue: 0.95).opacity(0.45),
+                                                     Color(red: 0.7, green: 0.3, blue: 1.0).opacity(0.2)],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        ),
+                                        lineWidth: 1
+                                    )
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(viewModel.isGenerating)
+
+                        HStack(spacing: 8) {
+                            VStack { Divider() }
+                            Text("or pick a topic")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                                .fixedSize()
+                            VStack { Divider() }
+                        }
 
                         HStack(spacing: 12) {
                             TextField("Enter a theme...", text: $themeText)
