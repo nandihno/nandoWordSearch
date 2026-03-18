@@ -145,18 +145,20 @@ struct Grid: Equatable, Sendable {
         }
 
         let shuffledCoordinates = coordinates.shuffled(using: &generator)
-        let shuffledDirections = [GridDirection.north, .south, .east, .west].shuffled(using: &generator)
+        let directions: [GridDirection] = [.north, .south, .east, .west]
 
         for _ in 0 ..< 100 {
             guard
-                let start = shuffledCoordinates.randomElement(using: &generator),
-                let direction = shuffledDirections.randomElement(using: &generator)
+                let start = shuffledCoordinates.randomElement(using: &generator)
             else {
                 return false
             }
 
-            if place(word: word, from: start, direction: direction) {
-                return true
+            let shuffledDirections = directions.shuffled(using: &generator)
+            for direction in shuffledDirections {
+                if place(word: word, from: start, direction: direction) {
+                    return true
+                }
             }
         }
 
